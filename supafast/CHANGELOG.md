@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0+1 - 2025-12-23
+
+### 🔧 Repository Update
+- Updated repository URL to https://github.com/panarastudios/supafast
+
 ## 0.1.0 - 2024-01-01
 
 ### 🎉 Initial Release - MVP
