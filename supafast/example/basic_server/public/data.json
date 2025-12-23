@@ -1,0 +1,122 @@
+{
+  "title": "Supafast Static File Demo Data",
+  "description": "This JSON file is served statically by Supafast",
+  "features": [
+    {
+      "name": "Static File Serving",
+      "description": "Efficiently serve HTML, CSS, JS, and other assets",
+      "enabled": true
+    },
+    {
+      "name": "MIME Type Detection",
+      "description": "Automatic Content-Type headers based on file extensions",
+      "enabled": true
+    },
+    {
+      "name": "Caching Support",
+      "description": "ETag and Last-Modified headers for optimal caching",
+      "enabled": true
+    },
+    {
+      "name": "Security Features",
+      "description": "Directory traversal protection and configurable access",
+      "enabled": true
+    },
+    {
+      "name": "Compression",
+      "description": "Gzip compression for improved transfer speeds",
+      "enabled": true
+    }
+  ],
+  "middleware": {
+    "cors": {
+      "description": "Cross-Origin Resource Sharing support",
+      "status": "active"
+    },
+    "bodyParser": {
+      "description": "JSON and form data parsing",
+      "status": "active"
+    },
+    "logger": {
+      "description": "Request and response logging",
+      "status": "active"
+    },
+    "compression": {
+      "description": "Response compression with gzip",
+      "status": "active"
+    }
+  },
+  "routes": [
+    {
+      "path": "/",
+      "method": "GET",
+      "description": "Basic text response"
+    },
+    {
+      "path": "/json",
+      "method": "GET",
+      "description": "JSON response example"
+    },
+    {
+      "path": "/html",
+      "method": "GET",
+      "description": "HTML response with links"
+    },
+    {
+      "path": "/users/:id",
+      "method": "GET",
+      "description": "Path parameter demonstration"
+    },
+    {
+      "path": "/search",
+      "method": "GET",
+      "description": "Query parameter handling"
+    },
+    {
+      "path": "/upload",
+      "method": "GET/POST",
+      "description": "File upload and form handling"
+    },
+    {
+      "path": "/api/v1/test",
+      "method": "GET",
+      "description": "Router mounting example"
+    },
+    {
+      "path": "/middleware-demo",
+      "method": "GET",
+      "description": "Custom middleware demonstration"
+    },
+    {
+      "path": "/echo",
+      "method": "POST",
+      "description": "Body parsing test endpoint"
+    },
+    {
+      "path": "/error",
+      "method": "GET",
+      "description": "Error handling example"
+    }
+  ],
+  "staticFiles": {
+    "directory": "/public",
+    "indexFile": "index.html",
+    "supportedTypes": [
+      "text/html",
+      "text/css",
+      "application/javascript",
+      "application/json",
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/svg+xml",
+      "text/plain"
+    ]
+  },
+  "meta": {
+    "version": "0.1.0",
+    "framework": "Supafast",
+    "timestamp": "2025-12-23T00:00:00.000Z",
+    "documentation": "https://github.com/panarastudios/supafast"
+  }
+}

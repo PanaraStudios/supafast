@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supafast Static Files Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Supafast Static Files</h1>
+            <p>This page is served from the <code>/public</code> directory!</p>
+        </header>
+        
+        <main>
+            <section class="feature-grid">
+                <div class="feature-card">
+                    <h3>Static File Serving</h3>
+                    <p>HTML, CSS, JavaScript, and other static assets are served efficiently with proper MIME types and caching headers.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>Automatic Content-Type</h3>
+                    <p>Content-Type headers are automatically set based on file extensions for optimal browser compatibility.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>Security Features</h3>
+                    <p>Built-in protection against directory traversal attacks and configurable dotfile hiding.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h3>Caching Support</h3>
+                    <p>ETag and Last-Modified headers enable efficient client-side caching for improved performance.</p>
+                </div>
+            </section>
+            
+            <section class="demo-section">
+                <h2>Try These Features:</h2>
+                <ul>
+                    <li><a href="app.js">JavaScript file (app.js)</a></li>
+                    <li><a href="styles.css">CSS file (styles.css)</a></li>
+                    <li><a href="data.json">JSON file (data.json)</a></li>
+                    <li><a href="/">Back to main server</a></li>
+                </ul>
+            </section>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

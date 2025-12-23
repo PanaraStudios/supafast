@@ -75,6 +75,9 @@ class Request {
   /// Raw request body as string (cached after first access)
   String? _rawBody;
 
+  /// Raw request body as bytes (cached after first access)
+  List<int>? _rawBytes;
+
   /// Flag indicating whether the request body has been parsed
   bool _bodyParsed = false;
 
@@ -250,6 +253,20 @@ class Request {
     return _body;
   }
 
+  /// Get the raw request body as bytes.
+  ///
+  /// This property reads and caches the raw request body data as bytes.
+  /// Subsequent calls return the cached value.
+  ///
+  /// Returns the complete request body as bytes.
+  Future<List<int>> get rawBytes async {
+    if (_rawBytes != null) return _rawBytes!;
+
+    _rawBytes = await _request
+        .fold<List<int>>([], (previous, element) => previous..addAll(element));
+    return _rawBytes!;
+  }
+
   /// Get the raw request body as a string.
   ///
   /// This property reads and caches the raw request body data. It reads
@@ -275,8 +292,7 @@ class Request {
   Future<String> get rawBody async {
     if (_rawBody != null) return _rawBody!;
 
-    final bytes = await _request
-        .fold<List<int>>([], (previous, element) => previous..addAll(element));
+    final bytes = await rawBytes;
     _rawBody = utf8.decode(bytes);
     return _rawBody!;
   }
@@ -312,19 +328,27 @@ class Request {
       throw Exception('Request body too large: $contentLength bytes');
     }
 
-    final rawBodyString = await rawBody;
     final contentType = _request.headers.contentType;
 
-    if (ContentTypeUtils.isJson(contentType)) {
-      try {
-        _body = jsonDecode(rawBodyString);
-      } catch (e) {
-        throw FormatException('Invalid JSON in request body: $e');
-      }
-    } else if (ContentTypeUtils.isFormData(contentType)) {
-      _body = QueryParser.parse(rawBodyString);
+    if (ContentTypeUtils.isMultipart(contentType)) {
+      // Handle multipart data with raw bytes to avoid UTF-8 decoding issues
+      final rawBodyBytes = await rawBytes;
+      _body = await _parseMultipartBodyFromBytes(rawBodyBytes, contentType);
     } else {
-      _body = rawBodyString;
+      // For other content types, decode as UTF-8 string first
+      final rawBodyString = await rawBody;
+      
+      if (ContentTypeUtils.isJson(contentType)) {
+        try {
+          _body = jsonDecode(rawBodyString);
+        } catch (e) {
+          throw FormatException('Invalid JSON in request body: $e');
+        }
+      } else if (ContentTypeUtils.isFormData(contentType)) {
+        _body = QueryParser.parse(rawBodyString);
+      } else {
+        _body = rawBodyString;
+      }
     }
 
     _bodyParsed = true;
@@ -549,5 +573,155 @@ class Request {
   @override
   String toString() {
     return 'Request($method $path)';
+  }
+
+  /// Parse multipart/form-data body into a map with form fields and files.
+  ///
+  /// This method parses multipart request bodies, which are commonly used 
+  /// for file uploads and forms with mixed content types.
+  ///
+  /// Returns a Map with:
+  /// - String keys for form field names
+  /// - Values can be either String (for text fields) or Map (for files)
+  /// - File entries contain: {name, filename, contentType, data}
+  ///
+  /// Example:
+  /// ```dart
+  /// app.post('/upload', (req, res) async {
+  ///   await req.parseBody();
+  ///   final body = req.body as Map<String, dynamic>;
+  ///   
+  ///   final textField = body['description'] as String?;
+  ///   final fileField = body['file'] as Map<String, dynamic>?;
+  ///   
+  ///   if (fileField != null) {
+  ///     final filename = fileField['filename'] as String;
+  ///     final data = fileField['data'] as List<int>;
+  ///     // Process uploaded file...
+  ///   }
+  /// });
+  /// ```
+  Future<Map<String, dynamic>> _parseMultipartBodyFromBytes(List<int> bodyBytes, ContentType? contentType) async {
+    if (contentType == null) {
+      throw FormatException('Missing content type for multipart data');
+    }
+
+    // Extract boundary from content type
+    final boundary = contentType.parameters['boundary'];
+    if (boundary == null) {
+      throw FormatException('Missing boundary in multipart content type');
+    }
+
+    final result = <String, dynamic>{};
+    final boundaryBytes = utf8.encode('--$boundary');
+    
+    // Find parts separated by boundaries
+    final parts = <List<int>>[];
+    int start = 0;
+    
+    while (true) {
+      final boundaryIndex = _indexOfBytes(bodyBytes, boundaryBytes, start);
+      if (boundaryIndex == -1) break;
+      
+      if (start > 0) {
+        // Extract part data (skip boundary and CRLF)
+        final partEnd = boundaryIndex - 2; // Remove trailing CRLF
+        if (partEnd > start) {
+          parts.add(bodyBytes.sublist(start, partEnd));
+        }
+      }
+      
+      start = boundaryIndex + boundaryBytes.length + 2; // Skip boundary and CRLF
+      
+      // Check for final boundary (ends with --)
+      if (start < bodyBytes.length - 1 && 
+          bodyBytes[start] == 45 && bodyBytes[start + 1] == 45) {
+        break;
+      }
+    }
+
+    // Parse each part
+    for (final partBytes in parts) {
+      // First, find the header/body boundary by looking for double CRLF
+      int headerEndIndex = -1;
+      for (int i = 0; i < partBytes.length - 3; i++) {
+        if (partBytes[i] == 13 && partBytes[i + 1] == 10 && // \r\n
+            partBytes[i + 2] == 13 && partBytes[i + 3] == 10) { // \r\n
+          headerEndIndex = i + 4; // Start of body
+          break;
+        }
+      }
+      
+      if (headerEndIndex == -1) continue;
+      
+      // Decode only the headers portion as UTF-8
+      final headerBytes = partBytes.sublist(0, headerEndIndex - 4);
+      final headerString = utf8.decode(headerBytes);
+      final lines = headerString.split('\r\n');
+      
+      // Parse headers
+      final headers = <String, String>{};
+      
+      for (final line in lines) {
+        final trimmedLine = line.trim();
+        if (trimmedLine.isEmpty) break;
+        
+        final colonIndex = trimmedLine.indexOf(':');
+        if (colonIndex > 0) {
+          final key = trimmedLine.substring(0, colonIndex).trim().toLowerCase();
+          final value = trimmedLine.substring(colonIndex + 1).trim();
+          headers[key] = value;
+        }
+      }
+      
+      // Extract content disposition
+      final disposition = headers['content-disposition'];
+      if (disposition == null) continue;
+      
+      final nameMatch = RegExp(r'name="([^"]*)"').firstMatch(disposition);
+      if (nameMatch == null) continue;
+      
+      final fieldName = nameMatch.group(1)!;
+      final filenameMatch = RegExp(r'filename="([^"]*)"').firstMatch(disposition);
+      
+      // Get field data as raw bytes (everything after headers)
+      final dataBytes = partBytes.sublist(headerEndIndex);
+      
+      if (filenameMatch != null) {
+        // File field - keep data as raw bytes for binary files
+        final filename = filenameMatch.group(1)!;
+        final contentType = headers['content-type'] ?? 'application/octet-stream';
+        
+        result[fieldName] = {
+          'filename': filename,
+          'contentType': contentType,
+          'data': dataBytes, // Raw bytes - no double encoding
+          'size': dataBytes.length,
+        };
+      } else {
+        // Text field - decode as UTF-8 string
+        final data = utf8.decode(dataBytes);
+        result[fieldName] = data;
+      }
+    }
+
+    return result;
+  }
+
+  /// Helper method to find byte sequence in a larger byte array
+  int _indexOfBytes(List<int> haystack, List<int> needle, int start) {
+    if (needle.isEmpty || start >= haystack.length) return -1;
+    
+    for (int i = start; i <= haystack.length - needle.length; i++) {
+      bool found = true;
+      for (int j = 0; j < needle.length; j++) {
+        if (haystack[i + j] != needle[j]) {
+          found = false;
+          break;
+        }
+      }
+      if (found) return i;
+    }
+    return -1;
   }
 }

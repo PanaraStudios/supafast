@@ -19,11 +19,15 @@ class BodyParserOptions {
   /// Whether to parse raw text bodies (default: true)
   final bool text;
 
+  /// Whether to parse multipart form bodies (default: true)
+  final bool multipart;
+
   const BodyParserOptions({
     this.maxBodySize = 1024 * 1024, // 1MB
     this.json = true,
     this.urlencoded = true,
     this.text = true,
+    this.multipart = true,
   });
 }
 
@@ -60,6 +64,9 @@ Middleware bodyParser([BodyParserOptions? options]) {
         } else if (opts.urlencoded &&
             ContentTypeUtils.isFormData(contentType)) {
           await _parseFormBody(req, opts.maxBodySize);
+        } else if (opts.multipart &&
+            ContentTypeUtils.isMultipart(contentType)) {
+          await _parseMultipartBody(req, opts.maxBodySize);
         } else if (opts.text && ContentTypeUtils.isText(contentType)) {
           await _parseTextBody(req, opts.maxBodySize);
         }
@@ -123,5 +130,10 @@ Future<void> _parseFormBody(req, int maxBodySize) async {
 
 /// Parse text body
 Future<void> _parseTextBody(req, int maxBodySize) async {
+  await req.parseBody(maxBodySize: maxBodySize);
+}
+
+/// Parse multipart body
+Future<void> _parseMultipartBody(req, int maxBodySize) async {
   await req.parseBody(maxBodySize: maxBodySize);
 }

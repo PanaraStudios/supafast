@@ -77,9 +77,7 @@ void main() async {
 
   // Start server
   const port = 3001;
-  await app.listen(port);
-
-  print('🚀 REST API running on http://localhost:$port');
+  print('Starting REST API server...');
   print('');
   print('Available endpoints:');
   print('  GET    /                  - API information');
@@ -99,6 +97,8 @@ void main() async {
   print('  curl http://localhost:$port/users');
   print(
       '  curl -X POST http://localhost:$port/users -H "Content-Type: application/json" -d \'{"name": "John Doe", "email": "john@example.com"}\'');
+  
+  await app.listen(port);
 }
 
 void setupUserRoutes(Supafast app) {

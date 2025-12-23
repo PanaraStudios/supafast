@@ -334,6 +334,10 @@ class Supafast {
 
       _startTime = DateTime.now();
 
+      // Log server startup
+      final displayHost = hostname == '0.0.0.0' ? 'localhost' : hostname;
+      print('🚀 Supafast server started at http://$displayHost:$port');
+
       // Handle requests
       await for (final request in _server!) {
         // Handle request in a separate async context to avoid blocking
@@ -435,9 +439,9 @@ class Supafast {
   ///
   /// This is an internal method that processes each incoming request by:
   /// 1. Wrapping the HTTP request/response in Supafast objects
-  /// 2. Finding a matching route
-  /// 3. Executing the middleware chain
-  /// 4. Calling the route handler
+  /// 2. Executing global middleware first (Express.js pattern)
+  /// 3. Finding a matching route if middleware doesn't handle the request
+  /// 4. Executing route middleware and handler
   /// 5. Handling any errors that occur
   ///
   /// [httpRequest] The raw HTTP request from the server
@@ -446,31 +450,68 @@ class Supafast {
     final response = Response(httpRequest.response);
 
     try {
-      // Find matching route
-      final routeMatch = _router.match(request.method, request.path);
+      // First, execute global middleware (this allows static files, auth, etc. to handle requests)
+      if (_middlewares.isNotEmpty) {
+        // Create a middleware chain with a special "route checking" middleware at the end
+        final globalMiddlewareWithRouting = <Middleware>[
+          ..._middlewares,
+          // This middleware checks if the response was handled by previous middleware
+          (req, res, next) async {
+            if (!res.sent) {
+              // Response not sent by global middleware, try route matching
+              final routeMatch = _router.match(req.method, req.path);
 
-      if (routeMatch == null) {
-        // No route found, send 404
-        await response.notFound();
-        return;
+              if (routeMatch != null) {
+                // Set path parameters
+                req.setParams(routeMatch.params);
+
+                // Execute route middleware and handler
+                final routeMiddleware = <Middleware>[
+                  ...routeMatch.middleware,
+                  // Convert handler to middleware for uniform execution
+                  (req, res, next) async {
+                    await routeMatch.route.handler(req, res);
+                  },
+                ];
+
+                final routeChain = MiddlewareChain(routeMiddleware);
+                await routeChain.execute(req, res);
+              } else {
+                // No route found and no middleware handled the request
+                await res.notFound();
+              }
+            }
+          },
+        ];
+
+        final globalChain = MiddlewareChain(globalMiddlewareWithRouting);
+        await globalChain.execute(request, response);
+      } else {
+        // No global middleware, proceed directly to route matching
+        final routeMatch = _router.match(request.method, request.path);
+
+        if (routeMatch == null) {
+          // No route found, send 404
+          await response.notFound();
+          return;
+        }
+
+        // Set path parameters
+        request.setParams(routeMatch.params);
+
+        // Build route middleware chain
+        final routeMiddleware = <Middleware>[
+          ...routeMatch.middleware,
+          // Convert handler to middleware for uniform execution
+          (req, res, next) async {
+            await routeMatch.route.handler(req, res);
+          },
+        ];
+
+        // Execute route middleware chain
+        final chain = MiddlewareChain(routeMiddleware);
+        await chain.execute(request, response);
       }
-
-      // Set path parameters
-      request.setParams(routeMatch.params);
-
-      // Build middleware chain: global middleware + route middleware + handler
-      final allMiddleware = <Middleware>[
-        ..._middlewares,
-        ...routeMatch.middleware,
-        // Convert handler to middleware for uniform execution
-        (req, res, next) async {
-          await routeMatch.route.handler(req, res);
-        },
-      ];
-
-      // Execute middleware chain
-      final chain = MiddlewareChain(allMiddleware);
-      await chain.execute(request, response);
 
       // Ensure response is closed if not already sent
       if (!response.sent) {

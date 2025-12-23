@@ -44,8 +44,8 @@ void main() async {
     return res.json({'message': 'Hello, $name!'});
   });
   
+  print('Starting server...');
   await app.listen(3000);
-  print('🚀 Server running on http://localhost:3000');
 }
 ```
 
@@ -67,6 +67,7 @@ app.post('/users', (req, res) {
 // Error handling
 app.use(errorHandler());
 
+print('Starting server with middleware...');
 await app.listen(3000);
 ```
 

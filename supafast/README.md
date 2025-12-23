@@ -37,8 +37,8 @@ void main() async {
   
   app.get('/', (req, res) => res.send('Hello, Supafast! ⚡'));
   
+  print('Starting Hello World server...');
   await app.listen(3000);
-  print('🚀 Server running on http://localhost:3000');
 }
 ```
 
@@ -69,8 +69,8 @@ void main() async {
   // Error handling
   app.use(errorHandler());
   
+  print('Starting server with middleware...');
   await app.listen(3000);
-  print('🚀 Server running on http://localhost:3000');
 }
 ```
 
