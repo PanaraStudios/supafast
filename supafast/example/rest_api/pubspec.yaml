@@ -1,0 +1,11 @@
+name: rest_api_example
+description: A REST API example with Supafast showing middleware and CRUD operations
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  supafast:
+    path: ../../

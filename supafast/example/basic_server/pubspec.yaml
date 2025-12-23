@@ -1,0 +1,11 @@
+name: basic_server_example
+description: A basic Supafast server example
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  supafast:
+    path: ../../

@@ -1,0 +1,46 @@
+{
+  "roots": [
+    "rest_api_example"
+  ],
+  "packages": [
+    {
+      "name": "rest_api_example",
+      "version": "1.0.0",
+      "dependencies": [
+        "supafast"
+      ],
+      "devDependencies": []
+    },
+    {
+      "name": "supafast",
+      "version": "0.1.0",
+      "dependencies": [
+        "args",
+        "collection",
+        "meta",
+        "path"
+      ]
+    },
+    {
+      "name": "path",
+      "version": "1.9.1",
+      "dependencies": []
+    },
+    {
+      "name": "meta",
+      "version": "1.17.0",
+      "dependencies": []
+    },
+    {
+      "name": "collection",
+      "version": "1.19.1",
+      "dependencies": []
+    },
+    {
+      "name": "args",
+      "version": "2.7.0",
+      "dependencies": []
+    }
+  ],
+  "configVersion": 1
+}

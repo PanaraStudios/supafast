@@ -1,0 +1,31 @@
+name: supafast
+description: A lightweight, Express.js-inspired backend framework for Dart with first-class Flutter integration.
+version: 0.1.0
+homepage: https://supafast.io
+repository: https://github.com/supafast-dart/supafast
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  args: ^2.4.2
+  path: ^1.8.3
+  collection: ^1.17.2
+  meta: ^1.9.1
+
+dev_dependencies:
+  test: ^1.24.6
+  lints: ^2.1.1
+
+topics:
+  - web-server
+  - backend
+  - http
+  - framework
+  - flutter
+
+platforms:
+  linux:
+  macos:
+  windows:
+  web:
